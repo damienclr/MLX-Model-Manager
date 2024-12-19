@@ -4,18 +4,9 @@
 import PackageDescription
 
 let package = Package(
-    name: "mlx-libraries",
+    name: "mlx-model-manager",
     platforms: [.macOS(.v14), .iOS(.v16)],
     products: [
-        .library(
-            name: "MLXLLM",
-            targets: ["MLXLLM"]),
-        .library(
-            name: "MLXVLM",
-            targets: ["MLXVLM"]),
-        .library(
-            name: "MLXLMCommon",
-            targets: ["MLXLMCommon"]),
         .library(
             name: "MLXModelManager",
             targets: ["MLXModelManager"]),
@@ -27,44 +18,6 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
     ],
     targets: [
-        .target(
-            name: "MLXLLM",
-            dependencies: [
-                "MLXLMCommon",
-                .product(name: "MLX", package: "mlx-swift"),
-                .product(name: "MLXFast", package: "mlx-swift"),
-                .product(name: "MLXNN", package: "mlx-swift"),
-                .product(name: "MLXOptimizers", package: "mlx-swift"),
-                .product(name: "MLXRandom", package: "mlx-swift"),
-                .product(name: "Transformers", package: "swift-transformers"),
-            ],
-            path: "Sources/MLXLLM",
-            exclude: [
-                "README.md"
-            ],
-            swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency")
-            ]
-        ),
-        .target(
-            name: "MLXVLM",
-            dependencies: [
-                "MLXLMCommon",
-                .product(name: "MLX", package: "mlx-swift"),
-                .product(name: "MLXFast", package: "mlx-swift"),
-                .product(name: "MLXNN", package: "mlx-swift"),
-                .product(name: "MLXOptimizers", package: "mlx-swift"),
-                .product(name: "MLXRandom", package: "mlx-swift"),
-                .product(name: "Transformers", package: "swift-transformers"),
-            ],
-            path: "Sources/MLXVLM",
-            exclude: [
-                "README.md"
-            ],
-            swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency")
-            ]
-        ),
         .target(
             name: "MLXLMCommon",
             dependencies: [
@@ -103,4 +56,5 @@ let package = Package(
         ),
     ]
 )
+
 
