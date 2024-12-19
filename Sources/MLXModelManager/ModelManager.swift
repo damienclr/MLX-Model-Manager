@@ -47,20 +47,26 @@ public class ModelManager: ObservableObject {
                     }
                 }
             )
+            print("Debug: loadModel() completed successfully. container: \(String(describing: self.container))")
             output = "Model loaded successfully."
         } catch {
             output += "\nError loading model: \(error.localizedDescription)"
+            print("Debug: Error in loadModel(): \(error)")
         }
         isLoading = false
     }
 
     public func generate(prompt: String, imagePath: String? = nil) async {
+        print("Debug: In generate(). container: \(String(describing: container))")
         guard let container else {
             output = "Model not loaded."
             return
         }
-        guard !isGenerating else { return }
-
+        guard !isGenerating else { 
+            print("Debug: Already generating, ignoring new request.")
+            return 
+            }
+        
         isGenerating = true
         output = "Generating..."
 
@@ -72,9 +78,12 @@ public class ModelManager: ObservableObject {
                 userInput.images = [.ciImage(ciImage)]
             } else if let imagePath = imagePath {
                 output += "\nWarning: Could not load image at \(imagePath)"
+                print("Debug: Could not load image at \(imagePath)")
             }
             // Prepare the LMInput using the model's processor
+            print("Debug: Preparing input...")
             let lmInput = try await container.processor.prepare(input: userInput)
+            print("Debug: Input prepared.")
 
             // Set up generation parameters
             let parameters = GenerateParameters(
@@ -82,7 +91,8 @@ public class ModelManager: ObservableObject {
                 topP: topP,
                 repetitionPenalty: repetitionPenalty
             )
-
+            
+            print("Debug: Calling generate function")
             // Call the top-level generate function
             let result = try MLXLMCommon.generate(
                 input: lmInput,
@@ -92,9 +102,11 @@ public class ModelManager: ObservableObject {
                 // Return .more to keep generating until EOS or limit is reached
                 .more
             }
+            print("Debug: Generation completed.")
 
             // Decode the result
             output = result.output
+            print("Debug: Output: \(result.output)")
 
             /*let tokens = try await container.generate(
                 userInput: userInput,
@@ -108,6 +120,7 @@ public class ModelManager: ObservableObject {
 
         } catch {
             output += "\nGeneration error: \(error.localizedDescription)"
+            print("Debug: Generation error: \(error)")
         }
 
         isGenerating = false
