@@ -111,6 +111,7 @@ public class ModelManager: ObservableObject {
                 Task { @MainActor in
                     let partialText = container.tokenizer.decode(tokens: allTokens)
                     self.output = "Generating...\n" + partialText
+                    await Task.yield()
                 }
 
                 // Return .more to continue generation until the model stops
