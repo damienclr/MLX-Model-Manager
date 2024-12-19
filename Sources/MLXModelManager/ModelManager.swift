@@ -16,7 +16,6 @@ public class ModelManager: ObservableObject {
     @Published public var isGenerating: Bool = false
 
     private let modelPath: String
-    //private var container: ModelContext?
     public private(set) var container: ModelContext?
     private var temperature: Float = 0.7
     private var topP: Float = 0.9
@@ -68,8 +67,10 @@ public class ModelManager: ObservableObject {
             return 
             }
         
-        isGenerating = true
-        output = "Generating..."
+        //isGenerating = true
+        //output = "Generating..."
+
+        await MainActor.run { self.isGenerating = true; self.output = "Generating..."
 
         do {
             var userInput = UserInput(prompt: .text(prompt))
@@ -150,16 +151,18 @@ let result =  try MLXLMCommon.generate(
 
             // Decode the result
             //output = result.output
-            self.output = result.output
-            print("Debug: Output: \(result.output)")
+            //self.output = result.output
+            await MainActor.run { self.output = result.output }
+            //print("Debug: Output: \(result.output)")
 
 
         } catch {
-            output += "\nGeneration error: \(error.localizedDescription)"
+            //output += "\nGeneration error: \(error.localizedDescription)"
+            await MainActor.run { self.output += "\nGeneration error: \(error.localizedDescription)" }
             print("Debug: Generation error: \(error)")
         }
-
-        isGenerating = false
+        await MainActor.run { self.isGenerating = false }
+        //isGenerating = false
     }
 }
 
