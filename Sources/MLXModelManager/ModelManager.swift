@@ -96,6 +96,8 @@ public class ModelManager: ObservableObject {
             // This array will hold all generated tokens as we stream
             //var allTokens = [Int]()
 
+            var previouslyDisplayedCount =
+
             print("Debug: Calling generate function")
             // Call the top-level generate function
             let result = try MLXLMCommon.generate(
@@ -103,8 +105,6 @@ public class ModelManager: ObservableObject {
                 parameters: parameters,
                 context: container
             ) 
-            var previouslyDisplayedCount = 0
-
             { tokens in
             let newTokens = tokens[previouslyDisplayedCount..<tokens.count]
             let partialText = container.tokenizer.decode(Array(newTokens))
