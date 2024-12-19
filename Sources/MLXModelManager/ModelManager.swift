@@ -98,7 +98,7 @@ public class ModelManager: ObservableObject {
 
             var detokenizer = NaiveStreamingDetokenizer(tokenizer: container.tokenizer)
 
-return try MLXLMCommon.generate(
+let result =  try MLXLMCommon.generate(
     input: lmInput,
     parameters: parameters,
     context: container
