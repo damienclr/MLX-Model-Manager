@@ -96,6 +96,29 @@ public class ModelManager: ObservableObject {
             // This array will hold all generated tokens as we stream
             //var allTokens = [Int]()
 
+            var detokenizer = NaiveStreamingDetokenizer(tokenizer: container.tokenizer)
+
+return try MLXLMCommon.generate(
+    input: lmInput,
+    parameters: parameters,
+    context: container
+) { tokens in
+    // Append the last token to the detokenizer
+    if let last = tokens.last {
+        detokenizer.append(token: last)
+    }
+
+    // If the detokenizer can produce decoded text:
+    if let decodedToken = detokenizer.next() {
+        Task { @MainActor in
+            self.output += decodedToken
+            await Task.yield() // allow UI to update
+        }
+    }
+
+    return .more
+}
+            /*
             var previouslyDisplayedCount = 0
 
             print("Debug: Calling generate function")
@@ -117,7 +140,7 @@ public class ModelManager: ObservableObject {
 
             previouslyDisplayedCount = tokens.count
             return .more
-            }
+            }*/
 
             /*{ _ in
                 // Return .more to keep generating until EOS or limit is reached
