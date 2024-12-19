@@ -16,7 +16,8 @@ public class ModelManager: ObservableObject {
     @Published public var isGenerating: Bool = false
 
     private let modelPath: String
-    private var container: ModelContext?
+    //private var container: ModelContext?
+    public private(set) var container: ModelContext?
     private var temperature: Float = 0.7
     private var topP: Float = 0.9
     private var repetitionPenalty: Float = 1.0
