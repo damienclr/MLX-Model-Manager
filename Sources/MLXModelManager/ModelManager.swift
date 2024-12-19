@@ -106,9 +106,15 @@ public class ModelManager: ObservableObject {
                 context: container
             ) 
             { tokens in
-            let newTokens = tokens[previouslyDisplayedCount..<tokens.count]
-            let partialText = container.tokenizer.decode(tokens: Array(newTokens))
-            self.output += partialText
+                let newTokens = tokens[previouslyDisplayedCount..<tokens.count]
+                let partialText = container.tokenizer.decode(tokens: Array(newTokens))
+            
+                Task { @MainActor in
+                    self.output += partialText
+                    //previouslyDisplayedCount = tokens.count
+                    await Task.yield()
+                }
+
             previouslyDisplayedCount = tokens.count
             return .more
             }
