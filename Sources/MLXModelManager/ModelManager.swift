@@ -96,7 +96,7 @@ public class ModelManager: ObservableObject {
             // This array will hold all generated tokens as we stream
             //var allTokens = [Int]()
 
-            var previouslyDisplayedCount =
+            var previouslyDisplayedCount = 0
 
             print("Debug: Calling generate function")
             // Call the top-level generate function
