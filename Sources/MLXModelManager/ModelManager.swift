@@ -92,32 +92,41 @@ public class ModelManager: ObservableObject {
                 topP: topP,
                 repetitionPenalty: repetitionPenalty
             )
-            
+           
+            // This array will hold all generated tokens as we stream
+            var allTokens = [Int]()
+
             print("Debug: Calling generate function")
             // Call the top-level generate function
             let result = try MLXLMCommon.generate(
                 input: lmInput,
                 parameters: parameters,
                 context: container
-            ) { _ in
+            ) 
+            { tokens in
+                // 'tokens' contains all tokens generated so far
+                allTokens = tokens
+
+                // Decode partial tokens and update the output continuously
+                Task { @MainActor in
+                    let partialText = container.tokenizer.decode(tokens: allTokens)
+                    self.output = "Generating...\n" + partialText
+                }
+
+                // Return .more to continue generation until the model stops
+                return .more
+            }
+            /*{ _ in
                 // Return .more to keep generating until EOS or limit is reached
                 .more
-            }
+            }*/
             print("Debug: Generation completed.")
 
             // Decode the result
-            output = result.output
+            //output = result.output
+            self.output = result.output
             print("Debug: Output: \(result.output)")
 
-            /*let tokens = try await container.generate(
-                userInput: userInput,
-                topP: topP,
-                temperature: temperature,
-                repetitionPenalty: repetitionPenalty
-            )
-
-            let textOutput = container.tokenizer.decode(tokens: tokens)
-            output = textOutput*/
 
         } catch {
             output += "\nGeneration error: \(error.localizedDescription)"
