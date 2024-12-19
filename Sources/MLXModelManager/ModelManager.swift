@@ -94,7 +94,7 @@ public class ModelManager: ObservableObject {
             )
            
             // This array will hold all generated tokens as we stream
-            var allTokens = [Int]()
+            //var allTokens = [Int]()
 
             print("Debug: Calling generate function")
             // Call the top-level generate function
@@ -103,20 +103,16 @@ public class ModelManager: ObservableObject {
                 parameters: parameters,
                 context: container
             ) 
+            var previouslyDisplayedCount = 0
+
             { tokens in
-                // 'tokens' contains all tokens generated so far
-                allTokens = tokens
-
-                // Decode partial tokens and update the output continuously
-                Task { @MainActor in
-                    let partialText = container.tokenizer.decode(tokens: allTokens)
-                    self.output = "Generating...\n" + partialText
-                    await Task.yield()
-                }
-
-                // Return .more to continue generation until the model stops
-                return .more
+            let newTokens = tokens[previouslyDisplayedCount..<tokens.count]
+            let partialText = container.tokenizer.decode(Array(newTokens))
+            self.output += partialText
+            previouslyDisplayedCount = tokens.count
+            return .more
             }
+
             /*{ _ in
                 // Return .more to keep generating until EOS or limit is reached
                 .more
