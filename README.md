@@ -21,6 +21,24 @@ MLX Model Manager provides a unified interface for loading and running both Larg
 
 ## Usage
 
+```
+func loadAndGenerate() async {
+    let manager = ModelManager(modelPath: "mlx-community/phi-2-hf-4bit-mlx")
+    do {
+        // Load the model
+        try await manager.loadModel()
+        print("Model loaded successfully.")
+        
+        // Generate text
+        await manager.generate(prompt: "What is the capital of France?")
+        print("Generated Output: \(manager.output)")
+    } catch {
+        print("Error: \(error)")
+    }
+}
+```
+
+
 ### Example: Loading an LLM
 
 ```
