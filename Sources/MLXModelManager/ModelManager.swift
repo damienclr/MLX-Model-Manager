@@ -70,7 +70,7 @@ public class ModelManager: ObservableObject {
         //isGenerating = true
         //output = "Generating..."
 
-        await MainActor.run { self.isGenerating = true; self.output = "Generating..."
+        await MainActor.run { self.isGenerating = true; self.output = "Generating..."}
 
         do {
             var userInput = UserInput(prompt: .text(prompt))
