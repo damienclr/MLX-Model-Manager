@@ -107,7 +107,7 @@ public class ModelManager: ObservableObject {
             ) 
             { tokens in
             let newTokens = tokens[previouslyDisplayedCount..<tokens.count]
-            let partialText = container.tokenizer.decode(Array(newTokens))
+            let partialText = container.tokenizer.decode(tokens: Array(newTokens))
             self.output += partialText
             previouslyDisplayedCount = tokens.count
             return .more
