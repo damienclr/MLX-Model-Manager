@@ -14,6 +14,7 @@ public class ModelManager: ObservableObject { // removed @MainActor
     @Published public var isLoading: Bool = false
     @Published public var isGenerating: Bool = false
 
+    public var maxTokens: Int?
     private let modelPath: String
     public private(set) var container: ModelContext?
     private var temperature: Float = 0.7
@@ -97,6 +98,7 @@ public class ModelManager: ObservableObject { // removed @MainActor
             )
 
             var detokenizer = NaiveStreamingDetokenizer(tokenizer: container.tokenizer)
+            var tokenCount = 0
 
             // Start generation
             let result = try MLXLMCommon.generate(
@@ -106,6 +108,7 @@ public class ModelManager: ObservableObject { // removed @MainActor
             ) { tokens in
                 if let last = tokens.last {
                     detokenizer.append(token: last)
+                    tokenCount += 1
                 }
 
                 if let decodedToken = detokenizer.next() {
@@ -113,6 +116,11 @@ public class ModelManager: ObservableObject { // removed @MainActor
                         self.output += decodedToken
                         await Task.yield()
                     }
+                }
+
+                // Only stop if maxTokens is set and we've reached that limit
+                if let limit = self.maxTokens, tokenCount >= limit {
+                    return .stop
                 }
 
                 return .more
