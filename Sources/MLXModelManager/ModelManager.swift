@@ -8,8 +8,7 @@ import MLXLMCommon
 import Tokenizers
 import Hub
 
-@MainActor
-public class ModelManager: ObservableObject {
+public class ModelManager: ObservableObject { // removed @MainActor
     @Published public var progressPercent: Int = 0
     @Published public var output: String = ""
     @Published public var isLoading: Bool = false
@@ -33,12 +32,16 @@ public class ModelManager: ObservableObject {
 
     public func loadModel() async throws {
         guard !isLoading else { return }
-        isLoading = true
-        output = "Loading model..."
+        
+        await MainActor.run {
+            self.isLoading = true
+            self.output = "Loading model..."
+        }
+        
         do {
             let configuration = ModelConfiguration(id: modelPath)
             let hub = HubApi()
-            self.container = try await ModelFactory.shared.load(
+            let ctx = try await ModelFactory.shared.load(
                 hub: hub,
                 configuration: configuration,
                 progressHandler: { progress in
@@ -47,30 +50,31 @@ public class ModelManager: ObservableObject {
                     }
                 }
             )
-            print("Debug: loadModel() completed successfully. container: \(String(describing: self.container))")
-            output = "Model loaded successfully."
+            
+            await MainActor.run {
+                self.container = ctx
+                self.output = "Model loaded successfully."
+                self.isLoading = false
+            }
         } catch {
-            output += "\nError loading model: \(error.localizedDescription)"
-            print("Debug: Error in loadModel(): \(error)")
+            await MainActor.run {
+                self.output += "\nError loading model: \(error.localizedDescription)"
+                self.isLoading = false
+            }
         }
-        isLoading = false
     }
 
     public func generate(prompt: String, imagePath: String? = nil) async {
-        print("Debug: In generate(). container: \(String(describing: container))")
         guard let container else {
-            output = "Model not loaded."
+            await MainActor.run { self.output = "Model not loaded." }
             return
         }
-        guard !isGenerating else { 
-            print("Debug: Already generating, ignoring new request.")
-            return 
-            }
+        guard !isGenerating else { return }
         
-        //isGenerating = true
-        //output = "Generating..."
-
-        await MainActor.run { self.isGenerating = true; self.output = "Generating..."}
+        await MainActor.run {
+            self.isGenerating = true
+            self.output = "Generating..."
+        }
 
         do {
             var userInput = UserInput(prompt: .text(prompt))
@@ -79,90 +83,49 @@ public class ModelManager: ObservableObject {
                let ciImage = CIImage(contentsOf: URL(fileURLWithPath: imagePath)) {
                 userInput.images = [.ciImage(ciImage)]
             } else if let imagePath = imagePath {
-                output += "\nWarning: Could not load image at \(imagePath)"
-                print("Debug: Could not load image at \(imagePath)")
+                await MainActor.run {
+                    self.output += "\nWarning: Could not load image at \(imagePath)"
+                }
             }
-            // Prepare the LMInput using the model's processor
-            print("Debug: Preparing input...")
-            let lmInput = try await container.processor.prepare(input: userInput)
-            print("Debug: Input prepared.")
 
-            // Set up generation parameters
+            let lmInput = try await container.processor.prepare(input: userInput)
+
             let parameters = GenerateParameters(
                 temperature: temperature,
                 topP: topP,
                 repetitionPenalty: repetitionPenalty
             )
-           
-            // This array will hold all generated tokens as we stream
-            //var allTokens = [Int]()
 
             var detokenizer = NaiveStreamingDetokenizer(tokenizer: container.tokenizer)
 
-let result =  try MLXLMCommon.generate(
-    input: lmInput,
-    parameters: parameters,
-    context: container
-) { tokens in
-    // Append the last token to the detokenizer
-    if let last = tokens.last {
-        detokenizer.append(token: last)
-    }
-
-    // If the detokenizer can produce decoded text:
-    if let decodedToken = detokenizer.next() {
-        Task { @MainActor in
-            self.output += decodedToken
-            await Task.yield() // allow UI to update
-        }
-    }
-
-    return .more
-}
-            /*
-            var previouslyDisplayedCount = 0
-
-            print("Debug: Calling generate function")
-            // Call the top-level generate function
+            // Start generation
             let result = try MLXLMCommon.generate(
                 input: lmInput,
                 parameters: parameters,
                 context: container
-            ) 
-            { tokens in
-                let newTokens = tokens[previouslyDisplayedCount..<tokens.count]
-                let partialText = container.tokenizer.decode(tokens: Array(newTokens))
-            
-                Task { @MainActor in
-                    self.output += partialText
-                    //previouslyDisplayedCount = tokens.count
-                    await Task.yield()
+            ) { tokens in
+                if let last = tokens.last {
+                    detokenizer.append(token: last)
                 }
 
-            previouslyDisplayedCount = tokens.count
-            return .more
-            }*/
+                if let decodedToken = detokenizer.next() {
+                    Task { @MainActor in
+                        self.output += decodedToken
+                        await Task.yield()
+                    }
+                }
 
-            /*{ _ in
-                // Return .more to keep generating until EOS or limit is reached
-                .more
-            }*/
-            print("Debug: Generation completed.")
+                return .more
+            }
 
-            // Decode the result
-            //output = result.output
-            //self.output = result.output
-            await MainActor.run { self.output = result.output }
-            //print("Debug: Output: \(result.output)")
-
+            // Optionally set final output to the result's output if desired
+            // await MainActor.run { self.output = result.output }
 
         } catch {
-            //output += "\nGeneration error: \(error.localizedDescription)"
             await MainActor.run { self.output += "\nGeneration error: \(error.localizedDescription)" }
-            print("Debug: Generation error: \(error)")
         }
+
         await MainActor.run { self.isGenerating = false }
-        //isGenerating = false
     }
 }
 
