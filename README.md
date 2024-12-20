@@ -110,6 +110,31 @@ try await manager.loadModel()
 await manager.generate(prompt: "Explain quantum mechanics simply.")
 ```
 
+## Supported Models
+
+You can replace the `modelPath` parameter in your Swift code with any of the IDs listed below. All models support Language modality, and the last two also support Vision.
+
+| ModelPath                                      | Language | Vision |
+|------------------------------------------------|:--------:|:------:|
+| mlx-community/SmolLM-135M-Instruct-4bit       | ✅       |        |
+| mlx-community/Mistral-Nemo-Instruct-2407-4bit | ✅       |        |
+| mlx-community/Mistral-7B-Instruct-v0.3-4bit   | ✅       |        |
+| mlx-community/CodeLlama-13b-Instruct-hf-4bit-MLX | ✅    |        |
+| mlx-community/phi-2-hf-4bit-mlx               | ✅       |        |
+| mlx-community/Phi-3.5-mini-instruct-4bit      | ✅       |        |
+| mlx-community/Phi-3.5-MoE-instruct-4bit       | ✅       |        |
+| mlx-community/quantized-gemma-2b-it           | ✅       |        |
+| mlx-community/gemma-2-9b-it-4bit              | ✅       |        |
+| mlx-community/gemma-2-2b-it-4bit              | ✅       |        |
+| mlx-community/Qwen1.5-0.5B-Chat-4bit          | ✅       |        |
+| mlx-community/OpenELM-270M-Instruct           | ✅       |        |
+| mlx-community/Meta-Llama-3.1-8B-Instruct-4bit | ✅       |        |
+| mlx-community/Meta-Llama-3-8B-Instruct-4bit   | ✅       |        |
+| mlx-community/Llama-3.2-1B-Instruct-4bit      | ✅       |        |
+| mlx-community/Llama-3.2-3B-Instruct-4bit      | ✅       |        |
+| mlx-community/paligemma-3b-mix-448-8bit       | ✅       | ✅     |
+| mlx-community/Qwen2-VL-2B-Instruct-4bit       | ✅       | ✅     |
+
 ## Attribution
 
 This is built on top of [mlx-swift-examples](https://github.com/ml-explore/mlx-swift-examples). Originally developed by [davidkoski](https://github.com/davidkoski), [awni](https://github.com/awni), and the MLX team, with additional contributions from the community. Special thanks to [Prince Canuma](https://github.com/Blaizzy), who created [MLX-VLM](https://github.com/Blaizzy/mlx-vlm), later ported to Swift by the MLX team.
