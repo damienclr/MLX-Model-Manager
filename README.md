@@ -68,7 +68,7 @@ struct ContentView: View {
 import SwiftUI
 import MLXModelManager
 
-struct VLMContentView: View {
+struct ContentView: View {
     @StateObject var manager = ModelManager(modelPath: "mlx-community/paligemma2-3b-ft-docci-448-8bit")
 
     var body: some View {
