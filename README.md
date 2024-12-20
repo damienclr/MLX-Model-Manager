@@ -4,6 +4,11 @@ MLX Model Manager provides a unified interface for loading and running both Larg
 
 [View Demo](https://github.com/kunal732/MLX-Model-Manager/releases/download/v0.0.1/Paligemma2-4k.mov)
 
+<video width="600" controls>
+  <source src="https://github.com/kunal732/MLX-Model-Manager/releases/download/v0.0.1/Paligemma2-4k.mov" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
 ## Installation
 
 📦 Use Swift Package Manager to integrate MLX Model Manager into your project.
