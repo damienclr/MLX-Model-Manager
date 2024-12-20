@@ -70,7 +70,7 @@ public class ModelTypeRegistry: @unchecked Sendable {
         // VLM models
         "paligemma": create(PaliGemmaConfiguration.self, PaliGemma.init),
         "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
-        "llava": create(LlavaConfiguration.self, Llava.init),
+        //"llava": create(LlavaConfiguration.self, Llava.init),
     ]
 
     /// Add a new model to the type registry.
@@ -262,10 +262,10 @@ public class ModelRegistry: @unchecked Sendable {
         defaultPrompt: "Describe the image in English"
     )
 
-    static public let llava1_5_7B_4bit = ModelConfiguration(
+    /*static public let llava1_5_7B_4bit = ModelConfiguration(
         id: "mlx-community/llava-1.5-7b-4bit",
         defaultPrompt: "Describe the image in English"
-    )
+    )*/
 
     private static func all() -> [ModelConfiguration] {
         [
@@ -289,7 +289,7 @@ public class ModelRegistry: @unchecked Sendable {
             // VLM configs:
             paligemma3bMix448_8bit,
             qwen2VL2BInstruct4Bit,
-            llava1_5_7B_4bit
+            //llava1_5_7B_4bit
         ]
     }
 
