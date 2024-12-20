@@ -2,8 +2,6 @@
 
 MLX Model Manager provides a unified interface for loading and running both Large Language Models (LLMs) and Vision-Language Models (VLMs) on Apple Silicon. It simplifies the model download, initialization, and generation process, so you can focus on integrating AI capabilities into your applications.
 
-[View Demo](https://github.com/kunal732/MLX-Model-Manager/releases/download/v0.0.1/Paligemma2-4k.mov)
-
 <video width="600" controls>
   <source src="https://github.com/kunal732/MLX-Model-Manager/releases/download/v0.0.1/Paligemma2-4k.mov" type="video/mp4">
   Your browser does not support the video tag.
