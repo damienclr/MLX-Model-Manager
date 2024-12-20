@@ -112,7 +112,7 @@ await manager.generate(prompt: "Explain quantum mechanics simply.")
 
 ## Attribution
 
-This is built on top of [mlx-swift-examples](https://github.com/ml-explore/mlx-swift-examples). Originally developed by [davidkoski](https://github.com/davidkoski), [awni](https://github.com/awni), and the MLX team, with additional contributions from the community. Special thanks to Prince Canuma, who created [Blaizzy](https://github.com/Blaizzy), later ported to Swift by the MLX team.
+This is built on top of [mlx-swift-examples](https://github.com/ml-explore/mlx-swift-examples). Originally developed by [davidkoski](https://github.com/davidkoski), [awni](https://github.com/awni), and the MLX team, with additional contributions from the community. Special thanks to [Prince Canuma](https://github.com/Blaizzy), who created [MLX-VLM](https://github.com/Blaizzy/mlx-vlm), later ported to Swift by the MLX team.
 
 MLX Model Manager unifies how you can interact with both LLMs and VLMs, streamlining development and integration efforts.
 
