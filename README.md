@@ -134,6 +134,7 @@ You can replace the `modelPath` parameter in your Swift code with any of the IDs
 | mlx-community/Llama-3.2-3B-Instruct-4bit      | ✅       |        |
 | mlx-community/paligemma-3b-mix-448-8bit       | ✅       | ✅     |
 | mlx-community/Qwen2-VL-2B-Instruct-4bit       | ✅       | ✅     |
+| mlx-community/paligemma2-3b-ft-docci-448-8bit | ✅       | ✅     |
 
 ## Attribution
 
