@@ -1,3 +1,5 @@
+here is llava.swift:
+
 // Llava.swift
 
 import Foundation
@@ -11,17 +13,18 @@ import Tokenizers
 // MARK: - Configurations
 
 public struct LlavaConfiguration: Codable, Sendable {
-    public let modelType: String
-    public let hiddenSize: Int
-    public let numHiddenLayers: Int
-    public let intermediateSize: Int
-    public let numAttentionHeads: Int
-    public let rmsNormEps: Float
-    public let vocabSize: Int
-    public let numKeyValueHeads: Int
-    public let ropeTheta: Float
-    public let ropeTraditional: Bool
-    public let tieWordEmbeddings: Bool
+    public struct TextConfiguration: Codable, Sendable {
+        public let modelType: String
+        public let hiddenSize: Int
+        public let numHiddenLayers: Int
+        public let intermediateSize: Int
+        public let numAttentionHeads: Int
+        public let rmsNormEps: Float
+        public let vocabSize: Int
+        public let numKeyValueHeads: Int
+        public let ropeTheta: Float
+        public let ropeTraditional: Bool
+        public let tieWordEmbeddings: Bool
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -53,9 +56,6 @@ public struct LlavaConfiguration: Codable, Sendable {
     }
 }
 
-// We assume we have TextConfig and VisionConfig types already from previous code
-// If not, define them similarly or match them to your actual fields.
-
 public struct VisionConfig: Codable, Sendable {
     public let modelType: String
     public let numHiddenLayers: Int
@@ -69,6 +69,8 @@ public struct VisionConfig: Codable, Sendable {
     public let numChannels: Int
     public let layerNormEps: Float
 
+    // Additional fields from python code (clip_vision_model or siglip_vision_model, etc.)
+    // Just set defaults if missing
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.modelType = try c.decode(String.self, forKey: .modelType)
@@ -99,22 +101,6 @@ public struct VisionConfig: Codable, Sendable {
     }
 }
 
-// TextConfig used by LanguageModel
-public struct TextConfig: Codable, Sendable {
-    public let modelType: String
-    public let hiddenSize: Int
-    public let numHiddenLayers: Int
-    public let intermediateSize: Int
-    public let numAttentionHeads: Int
-    public let rmsNormEps: Float
-    public let vocabSize: Int
-    public let numKeyValueHeads: Int
-    public let ropeTheta: Float
-    public let ropeTraditional: Bool
-    public let tieWordEmbeddings: Bool
-}
-
-// ModelConfig used by Llava
 public struct ModelConfig: Codable, Sendable {
     public let textConfig: TextConfig
     public let visionConfig: VisionConfig
@@ -124,9 +110,260 @@ public struct ModelConfig: Codable, Sendable {
     public let visionFeatureSelectStrategy: String
     public let visionFeatureLayer: Int
     public let vocabSize: Int
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+
+        self.textConfig = try TextConfig(from: decoder)
+        self.visionConfig = try VisionConfig(from: decoder)
+        self.modelType = try c.decodeIfPresent(String.self, forKey: .modelType) ?? "llama"
+        self.ignoreIndex = try c.decodeIfPresent(Int.self, forKey: .ignoreIndex) ?? -100
+        self.imageTokenIndex = try c.decodeIfPresent(Int.self, forKey: .imageTokenIndex) ?? 32000
+        self.visionFeatureSelectStrategy = try c.decodeIfPresent(String.self, forKey: .visionFeatureSelectStrategy) ?? "default"
+        self.visionFeatureLayer = try c.decodeIfPresent(Int.self, forKey: .visionFeatureLayer) ?? -2
+        self.vocabSize = try c.decodeIfPresent(Int.self, forKey: .vocabSize) ?? 32000
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case textConfig = "text_config"
+        case visionConfig = "vision_config"
+        case modelType = "model_type"
+        case ignoreIndex = "ignore_index"
+        case imageTokenIndex = "image_token_index"
+        case visionFeatureSelectStrategy = "vision_feature_select_strategy"
+        case visionFeatureLayer = "vision_feature_layer"
+        case vocabSize = "vocab_size"
+    }
 }
 
-// MARK: - Llava Model
+}
+// MARK: - LanguageModel
+
+// Based on language.py
+// We'll implement a Llama-like model similar to Qwen2VL and LLama from qwen2_vl code.
+
+private class RMSNorm: Module, UnaryLayer {
+    let weight: MLXArray
+    let eps: Float
+
+    public init(dimensions: Int, eps: Float = 1e-6) {
+        self.weight = MLXArray.ones([dimensions])
+        self.eps = eps
+        super.init()
+    }
+
+    public func callAsFunction(_ x: MLXArray) -> MLXArray {
+        return MLXFast.rmsNorm(x, weight: 1.0 + self.weight, eps: self.eps)
+    }
+}
+
+// Minimal Llama-like block
+private class TransformerBlock: Module {
+    @ModuleInfo(key: "self_attn") var attention: Qwen2VLDecoderLayerAttention
+    let mlp: Qwen2VLDecoderLayerMLP
+    @ModuleInfo(key: "input_layernorm") var inputLayerNorm: RMSNorm
+    @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: RMSNorm
+
+    init(_ config: TextConfig) {
+        self._attention.wrappedValue = Qwen2VLDecoderLayerAttention(config)
+        self.mlp = Qwen2VLDecoderLayerMLP(dimensions: config.hiddenSize, hiddenDimensions: config.intermediateSize)
+        self._inputLayerNorm.wrappedValue = RMSNorm(dimensions: config.hiddenSize, eps: config.rmsNormEps)
+        self._postAttentionLayerNorm.wrappedValue = RMSNorm(dimensions: config.hiddenSize, eps: config.rmsNormEps)
+    }
+
+    func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?) -> MLXArray {
+        var r = attention(inputLayerNorm(x), mask: mask, cache: cache)
+        let h = x + r
+        r = mlp(postAttentionLayerNorm(h))
+        return h + r
+    }
+}
+
+// We'll define minimal classes for attention and MLP based on language code:
+private class Qwen2VLDecoderLayerAttention: Module {
+    let heads: Int
+    let kvHeads: Int
+    let headDim: Int
+    let scale: Float
+
+    @ModuleInfo(key: "q_proj") var wq: Linear
+    @ModuleInfo(key: "k_proj") var wk: Linear
+    @ModuleInfo(key: "v_proj") var wv: Linear
+    @ModuleInfo(key: "o_proj") var wo: Linear
+
+    init(_ config: TextConfig) {
+        let dim = config.hiddenSize
+        self.heads = config.numAttentionHeads
+        self.kvHeads = config.numKeyValueHeads
+        self.headDim = dim / heads
+        self.scale = pow(Float(headDim), -0.5)
+
+        self._wq.wrappedValue = Linear(dim, heads * headDim, bias: true)
+        self._wk.wrappedValue = Linear(dim, kvHeads * headDim, bias: true)
+        self._wv.wrappedValue = Linear(dim, kvHeads * headDim, bias: true)
+        self._wo.wrappedValue = Linear(heads * headDim, dim, bias: false)
+    }
+
+    func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?) -> MLXArray {
+        let B = x.dim(0)
+        let L = x.dim(1)
+
+        var q = wq(x)
+        var k = wk(x)
+        var v = wv(x)
+
+        q = q.reshaped(B, L, heads, headDim).transposed(0, 2, 1, 3)
+        k = k.reshaped(B, L, kvHeads, headDim).transposed(0, 2, 1, 3)
+        v = v.reshaped(B, L, kvHeads, headDim).transposed(0, 2, 1, 3)
+
+        if let cache {
+            (k, v) = cache.update(keys: k, values: v)
+        }
+
+        let output = MLXFast.scaledDotProductAttention(
+            queries: q, keys: k, values: v, scale: scale, mask: mask
+        )
+        .transposed(0, 2, 1, 3)
+        .reshaped(B, L, -1)
+
+        return wo(output)
+    }
+}
+
+private class Qwen2VLDecoderLayerMLP: Module, UnaryLayer {
+    @ModuleInfo(key: "gate_proj") var gate: Linear
+    @ModuleInfo(key: "down_proj") var down: Linear
+    @ModuleInfo(key: "up_proj") var up: Linear
+
+    init(dimensions: Int, hiddenDimensions: Int) {
+        self._gate.wrappedValue = Linear(dimensions, hiddenDimensions, bias: false)
+        self._down.wrappedValue = Linear(hiddenDimensions, dimensions, bias: false)
+        self._up.wrappedValue = Linear(dimensions, hiddenDimensions, bias: false)
+    }
+
+    func callAsFunction(_ x: MLXArray) -> MLXArray {
+        down(silu(gate(x)) * up(x))
+    }
+}
+
+private class LlamaModel: Module {
+    @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
+    let layers: [TransformerBlock]
+    let norm: RMSNorm
+
+    init(_ config: TextConfig) {
+        self._embedTokens.wrappedValue = Embedding(embeddingCount: config.vocabSize, dimensions: config.hiddenSize)
+
+        self.layers = (0..<config.numHiddenLayers).map { _ in
+            TransformerBlock(config)
+        }
+
+        self.norm = RMSNorm(dimensions: config.hiddenSize, eps: config.rmsNormEps)
+    }
+
+    func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil, inputsEmbeds: MLXArray? = nil) -> MLXArray {
+        var h = inputsEmbeds ?? embedTokens(inputs)
+        let mask = createAttentionMask(h: h, cache: cache)
+
+        for (layer, c) in zip(layers, cache ?? Array(repeating: nil, count: layers.count)) {
+            h = layer(h, mask: mask, cache: c)
+        }
+
+        return norm(h)
+    }
+}
+
+private class LanguageModel: Module, KVCacheDimensionProvider {
+    @ModuleInfo var model: LlamaModel
+    @ModuleInfo var lmHead: Linear?
+
+    let kvHeads: [Int]
+
+    init(_ config: TextConfig) {
+        self.model = LlamaModel(config)
+        if !config.tieWordEmbeddings {
+            self._lmHead.wrappedValue = Linear(config.hiddenSize, config.vocabSize, bias: false)
+        }
+        self.kvHeads = Array(repeating: config.numKeyValueHeads, count: config.numHiddenLayers)
+    }
+
+    func callAsFunction(_ inputs: MLXArray?, cache: [KVCache]? = nil, inputsEmbeds: MLXArray? = nil) -> LMOutput {
+        var out = model(inputs ?? MLXArray([]), cache: cache, inputsEmbeds: inputsEmbeds)
+        if let lmHead = lmHead {
+            out = lmHead(out)
+        } else {
+            out = model.embedTokens.asLinear(out)
+        }
+        return LMOutput(logits: out)
+    }
+
+    static func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
+        weights.filter { !$0.key.contains("rotary_emb.inv_freq") }
+    }
+}
+
+// MARK: - VisionModel
+
+// Based on vision.py and the logic from llava.py example
+// We'll assume a simpler approach and note that additional complexity may be needed.
+
+private class VisionModel: Module {
+    // For brevity, we'll assume a Clip-like vision model
+    // The Python code is complex, involving PatchEmbed, Encoder, etc.
+    // Here, we just show a simplified structure.
+
+    @ModuleInfo(key: "vision_model") var visionModelCore: ClipVisionModel
+
+    init(_ config: VisionConfig) {
+        // For simplicity, just a single model type
+        self._visionModelCore.wrappedValue = ClipVisionModel(config)
+    }
+
+    func callAsFunction(_ x: MLXArray, outputHiddenStates: Bool = false) -> (MLXArray, MLXArray, [MLXArray]?) {
+        visionModelCore(x, outputHiddenStates: outputHiddenStates)
+    }
+
+    static func sanitize(_ weights: [String: MLXArray]) -> [String: MLXArray] {
+        var sanitized = [String: MLXArray]()
+        for (k, v) in weights {
+            if k.contains("position_id") { continue }
+            // handle patch_embedding weight shape if needed
+            sanitized[k] = v
+        }
+        return sanitized
+    }
+}
+
+// Placeholder ClipVisionModel to match call signatures:
+private class ClipVisionModel: Module {
+    let config: VisionConfig
+
+    init(_ config: VisionConfig) {
+        self.config = config
+    }
+
+    func callAsFunction(_ x: MLXArray, outputHiddenStates: Bool = false) -> (MLXArray, MLXArray, [MLXArray]?) {
+        // return (poolerOutput, lastHiddenState, hiddenStates?)
+        return (x, x, outputHiddenStates ? [x] : nil)
+    }
+}
+
+// MARK: - Combined Model (LLaVA style)
+
+public class MultiModalProjector: Module, UnaryLayer {
+    @ModuleInfo var linear1: Linear
+    @ModuleInfo var linear2: Linear
+    let gelu = GELU()
+
+    init(_ config: ModelConfig) {
+        self.linear1 = Linear(config.visionConfig.hiddenSize, config.textConfig.hiddenSize, bias: true)
+        self.linear2 = Linear(config.textConfig.hiddenSize, config.textConfig.hiddenSize, bias: true)
+    }
+
+    func callAsFunction(_ x: MLXArray) -> MLXArray {
+        linear2(gelu(linear1(x)))
+    }
+}
 
 public class Llava: Module, UnifiedModel, KVCacheDimensionProvider {
     @ModuleInfo(key: "vision_tower") var visionModel: VisionModel
@@ -138,60 +375,11 @@ public class Llava: Module, UnifiedModel, KVCacheDimensionProvider {
     public var vocabularySize: Int { config.vocabSize }
     public var kvHeads: [Int] { languageModel.kvHeads }
 
-    // Change init to accept LlavaConfiguration
-    public init(_ llavaConfig: LlavaConfiguration) {
-        // Convert LlavaConfiguration to TextConfig, VisionConfig, and ModelConfig
-
-        let textConfig = TextConfig(
-            modelType: llavaConfig.modelType,
-            hiddenSize: llavaConfig.hiddenSize,
-            numHiddenLayers: llavaConfig.numHiddenLayers,
-            intermediateSize: llavaConfig.intermediateSize,
-            numAttentionHeads: llavaConfig.numAttentionHeads,
-            rmsNormEps: llavaConfig.rmsNormEps,
-            vocabSize: llavaConfig.vocabSize,
-            numKeyValueHeads: llavaConfig.numKeyValueHeads,
-            ropeTheta: llavaConfig.ropeTheta,
-            ropeTraditional: llavaConfig.ropeTraditional,
-            tieWordEmbeddings: llavaConfig.tieWordEmbeddings
-        )
-
-        // For now, use dummy VisionConfig or decode from `config.json` if needed.
-        // You must have vision config info from config.json. If it's not part of LlavaConfiguration,
-        // either add it or provide defaults:
-        let visionConfig = VisionConfig(
-            modelType: "clip_vision_model",
-            numHiddenLayers: 24,
-            hiddenSize: 1024,
-            intermediateSize: 4096,
-            numAttentionHeads: 16,
-            imageSize: 336,
-            patchSize: 14,
-            projectionDim: 768,
-            vocabSize: 32000,
-            numChannels: 3,
-            layerNormEps: 1e-5
-        )
-
-        // Construct ModelConfig with defaults or read from full config file:
-        // If your final code reads from config.json, you might already have a ModelConfig. For now:
-        let modelConfig = ModelConfig(
-            textConfig: textConfig,
-            visionConfig: visionConfig,
-            modelType: llavaConfig.modelType,
-            ignoreIndex: -100,
-            imageTokenIndex: 32000,
-            visionFeatureSelectStrategy: "default",
-            visionFeatureLayer: -2,
-            vocabSize: llavaConfig.vocabSize
-        )
-
-        self.config = modelConfig
-
-        // Initialize submodules using modelConfig as before
-        self._visionModel.wrappedValue = VisionModel(modelConfig.visionConfig)
-        self._languageModel.wrappedValue = LanguageModel(modelConfig.textConfig)
-        self._multi_modal_projector.wrappedValue = MultiModalProjector(modelConfig)
+    public init(_ config: ModelConfig) {
+        self.config = config
+        self._visionModel.wrappedValue = VisionModel(config.visionConfig)
+        self._languageModel.wrappedValue = LanguageModel(config.textConfig)
+        self._multi_modal_projector.wrappedValue = MultiModalProjector(config)
     }
 
     public func loraLinearLayers() -> LoRALinearLayers {
@@ -203,16 +391,23 @@ public class Llava: Module, UnifiedModel, KVCacheDimensionProvider {
             return languageModel.model.embedTokens(inputIds)
         }
 
+        // Get text embeddings
         let textEmbeds = languageModel.model.embedTokens(inputIds)
+
+        // Obtain vision features (placeholder: just return pixelValues as if processed)
+        // In real code, run pixelValues through visionModel, select features and run projector.
         let (poolerOutput, lastHidden, hiddenStates) = visionModel(pixelValues, outputHiddenStates: true)
         let selectedImageFeature = hiddenStates?.last ?? lastHidden
         let imageFeatures = projector(selectedImageFeature)
 
+        // Merge image features into textEmbeds at the image token positions:
         var result = textEmbeds
         let imageTokenId = config.imageTokenIndex
         let inputIdsArray = inputIds.asArray(Int.self)
         for (i, token) in inputIdsArray.enumerated() {
             if token == imageTokenId {
+                // Insert image features here
+                // Assuming one image token per example:
                 result[0..., i...(i+imageFeatures.dim(1)-1), 0...] = imageFeatures
             }
         }
@@ -232,9 +427,11 @@ public class Llava: Module, UnifiedModel, KVCacheDimensionProvider {
     }
 
     public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
+        // Combine vision and language sanitization
         var w = VisionModel.sanitize(weights)
         w = LanguageModel.sanitize(w)
         return w
     }
 }
+
 
