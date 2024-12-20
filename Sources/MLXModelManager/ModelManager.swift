@@ -74,7 +74,7 @@ public class ModelManager: ObservableObject { // removed @MainActor
         
         await MainActor.run {
             self.isGenerating = true
-            self.output = "Generating..."
+            self.output = ""
         }
 
         do {
