@@ -361,7 +361,7 @@ public class MultiModalProjector: Module, UnaryLayer {
     }
 }
 
-public class LlavaLikeModel: Module, UnifiedModel, KVCacheDimensionProvider {
+public class Llava: Module, UnifiedModel, KVCacheDimensionProvider {
     @ModuleInfo(key: "vision_tower") var visionModel: VisionModel
     @ModuleInfo(key: "language_model") var languageModel: LanguageModel
     @ModuleInfo(key: "multi_modal_projector") var projector: MultiModalProjector
