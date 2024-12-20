@@ -99,7 +99,7 @@ struct ContentView: View {
 -  `temperature`: Controls randomness. Lower values = more deterministic output.
 -  `topP`: Nucleus sampling threshold. Consider only tokens within cumulative probability `topP`.
 -  `repetitionPenalty`: Penalizes repeated tokens to encourage diversity.
--  `maxTokens` (optional): Limits the maximum number of tokens to generate.
+-  `maxTokens`: Limits the maximum number of tokens to generate.
 
 Set parameters before calling `generate`:
 
