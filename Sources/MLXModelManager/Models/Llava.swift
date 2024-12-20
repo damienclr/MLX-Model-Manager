@@ -1,4 +1,3 @@
-here is llava.swift:
 
 // Llava.swift
 
