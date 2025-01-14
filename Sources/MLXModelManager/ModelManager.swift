@@ -133,7 +133,10 @@ public class ModelManager: ObservableObject { // removed @MainActor
             await MainActor.run { self.output += "\nGeneration error: \(error.localizedDescription)" }
         }
 
-        await MainActor.run { self.isGenerating = false }
+        await MainActor.run { 
+            self.output = self.output.replacingOccurrences(of: "<|im_end|>", with: "")
+            self.isGenerating = false 
+        }
     }
 }
 

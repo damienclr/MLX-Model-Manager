@@ -372,7 +372,7 @@ public class ModelFactory {
 
         try loadWeights(modelDirectory: modelDirectory, model: model, quantization: baseConfig.quantization)
 
-        let tokenizer = try await loadTokenizer(configuration: configuration, hub: hub)
+        let tokenizer = try await loadPatchedTokenizer(configuration: configuration, hub: hub)
 
         let processorConfigurationURL = modelDirectory.appendingPathComponent("preprocessor_config.json")
         let processor: any UserInputProcessor
@@ -388,6 +388,52 @@ public class ModelFactory {
         }
 
         return ModelContext(configuration: configuration, model: model, processor: processor, tokenizer: tokenizer)
+    }
+
+    private func loadPatchedTokenizer(configuration: ModelConfiguration, hub: HubApi) async throws -> Tokenizer {
+    var (tokenizerConfig, tokenizerData) = try await loadTokenizerConfig(configuration: configuration, hub: hub)
+
+    var dict = tokenizerData.dictionary
+    if var preTok = dict["pre_tokenizer"] as? [String: Any] {
+        if let type = preTok["type"] as? String, type == "Sequence",
+           var subTokArr = preTok["pretokenizers"] as? [[String: Any]] {
+
+            // We'll scan each sub-pretokenizer. If we find 'Split' with "invert"=true, "behavior"="Removed"
+            var didPatch = false
+            for i in 0..<subTokArr.count {
+                let item = subTokArr[i]
+                if let subType = item["type"] as? String, subType == "Split",
+                   let behavior = item["behavior"] as? String, behavior == "Removed",
+                   let invert = item["invert"] as? Bool, invert == true {
+
+                    // We found the destructive "Split" => remove or fix it
+                    print("DEBUG: Found destructive Split pretokenizer. Removing it.")
+                    subTokArr.remove(at: i)
+                    didPatch = true
+                    break
+                }
+            }
+            // If we removed something, reassign the array
+            if didPatch {
+                preTok["pretokenizers"] = subTokArr
+                dict["pre_tokenizer"] = preTok
+                tokenizerData = Config(dict)
+            }
+        }
+    }
+
+    return try PreTrainedTokenizer(tokenizerConfig: tokenizerConfig, tokenizerData: tokenizerData)
+ }
+}
+
+extension ModelConfiguration.Identifier {
+    var stringValue: String {
+        switch self {
+        case .id(let str):
+            return str
+        case .directory(let url):
+            return url.absoluteString
+        }
     }
 }
 
