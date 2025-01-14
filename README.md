@@ -123,6 +123,7 @@ You can replace the `modelPath` parameter in your Swift code with any of the IDs
 | mlx-community/phi-2-hf-4bit-mlx               | ✅       |        |
 | mlx-community/Phi-3.5-mini-instruct-4bit      | ✅       |        |
 | mlx-community/Phi-3.5-MoE-instruct-4bit       | ✅       |        |
+| mlx-community/phi-4-4bit                      | ✅       |        |
 | mlx-community/quantized-gemma-2b-it           | ✅       |        |
 | mlx-community/gemma-2-9b-it-4bit              | ✅       |        |
 | mlx-community/gemma-2-2b-it-4bit              | ✅       |        |
