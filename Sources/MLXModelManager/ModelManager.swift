@@ -112,8 +112,9 @@ public class ModelManager: ObservableObject { // removed @MainActor
                 }
 
                 if let decodedToken = detokenizer.next() {
+                    let cleanedToken = decodedToken.replacingOccurrences(of: "Ċ", with: "\n")
                     Task { @MainActor in
-                        self.output += decodedToken
+                        self.output += cleanedToken
                         await Task.yield()
                     }
                 }
@@ -135,6 +136,7 @@ public class ModelManager: ObservableObject { // removed @MainActor
 
         await MainActor.run { 
             self.output = self.output.replacingOccurrences(of: "<|im_end|>", with: "")
+            self.output = self.output.replacingOccurrences(of: "Ċ", with: "\n")
             self.isGenerating = false 
         }
     }
