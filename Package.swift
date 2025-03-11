@@ -12,8 +12,9 @@ let package = Package(
             targets: ["MLXModelManager"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/damienclr/mlx-swift.git", .branch("main")),
-        .package(url: "https://github.com/damienclr/swift-transformers.git", .branch("main")),
+        // Mise à jour de la syntaxe pour utiliser branch: au lieu de .branch
+        .package(url: "https://github.com/damienclr/mlx-swift.git", branch: "main"),
+        .package(url: "https://github.com/damienclr/swift-transformers.git", branch: "main"),
         .package(url: "https://github.com/1024jp/GzipSwift", "6.0.1" ... "6.0.1"),
         .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
     ],
