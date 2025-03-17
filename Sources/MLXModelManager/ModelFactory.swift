@@ -61,6 +61,7 @@ public class ModelTypeRegistry: @unchecked Sendable {
         "phimoe": create(PhiMoEConfiguration.self, PhiMoEModel.init),
         "gemma": create(GemmaConfiguration.self, GemmaModel.init),
         "gemma2": create(Gemma2Configuration.self, Gemma2Model.init),
+        "gemma3": create(Gemma3Configuration.self, Gemma3Model.init),
         "qwen2": create(Qwen2Configuration.self, Qwen2Model.init),
         "starcoder2": create(Starcoder2Configuration.self, Starcoder2Model.init),
         "cohere": create(CohereConfiguration.self, CohereModel.init),
@@ -220,6 +221,12 @@ public class ModelRegistry: @unchecked Sendable {
         defaultPrompt: "What is the difference between lettuce and cabbage?"
     )
 
+    static public let gemma_3_1b_it_8bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-1b-it-8bit",
+        overrideTokenizer: "PreTrainedTokenizer",
+        defaultPrompt: "What is the difference between lettuce and cabbage?"
+    )
+
     static public let qwen205b4bit = ModelConfiguration(
         id: "mlx-community/Qwen1.5-0.5B-Chat-4bit",
         overrideTokenizer: "PreTrainedTokenizer",
@@ -273,6 +280,7 @@ public class ModelRegistry: @unchecked Sendable {
             gemma2bQuantized,
             gemma_2_2b_it_4bit,
             gemma_2_9b_it_4bit,
+            gemma_3_1b_it_8bit,
             llama3_1_8B_4bit,
             llama3_2_1B_4bit,
             llama3_2_3B_4bit,
