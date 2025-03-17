@@ -60,7 +60,6 @@ public class ModelTypeRegistry: @unchecked Sendable {
         "phi3": create(Phi3Configuration.self, Phi3Model.init),
         "phimoe": create(PhiMoEConfiguration.self, PhiMoEModel.init),
         "gemma": create(GemmaConfiguration.self, GemmaModel.init),
-        "gemma2": create(Gemma2Configuration.self, Gemma2Model.init),
         "gemma3": create(Gemma3Configuration.self, Gemma3Model.init),
         "qwen2": create(Qwen2Configuration.self, Qwen2Model.init),
         "starcoder2": create(Starcoder2Configuration.self, Starcoder2Model.init),
@@ -203,24 +202,6 @@ public class ModelRegistry: @unchecked Sendable {
         prompt in "<|user|>\n\(prompt)<|end|>\n<|assistant|>\n"
     }
 
-    static public let gemma2bQuantized = ModelConfiguration(
-        id: "mlx-community/quantized-gemma-2b-it",
-        overrideTokenizer: "PreTrainedTokenizer",
-        defaultPrompt: "what is the difference between lettuce and cabbage?"
-    )
-
-    static public let gemma_2_9b_it_4bit = ModelConfiguration(
-        id: "mlx-community/gemma-2-9b-it-4bit",
-        overrideTokenizer: "PreTrainedTokenizer",
-        defaultPrompt: "What is the difference between lettuce and cabbage?"
-    )
-
-    static public let gemma_2_2b_it_4bit = ModelConfiguration(
-        id: "mlx-community/gemma-2-2b-it-4bit",
-        overrideTokenizer: "PreTrainedTokenizer",
-        defaultPrompt: "What is the difference between lettuce and cabbage?"
-    )
-
     static public let gemma_3_1b_it_8bit = ModelConfiguration(
         id: "mlx-community/gemma-3-1b-it-8bit",
         overrideTokenizer: "PreTrainedTokenizer",
@@ -277,9 +258,6 @@ public class ModelRegistry: @unchecked Sendable {
     private static func all() -> [ModelConfiguration] {
         [
             codeLlama13b4bit,
-            gemma2bQuantized,
-            gemma_2_2b_it_4bit,
-            gemma_2_9b_it_4bit,
             gemma_3_1b_it_8bit,
             llama3_1_8B_4bit,
             llama3_2_1B_4bit,
